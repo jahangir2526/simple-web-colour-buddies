@@ -1,14 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hello World</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colour Buddies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', Arial, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 3.5em;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            position: relative;
+            cursor: pointer;
+            perspective: 1000px;
+            user-select: none;
+        }
+
+        .tile-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .tile.flipped .tile-inner {
+            transform: rotateY(180deg);
+        }
+
+        .tile-front,
+        .tile-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border: 5px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .tile-front {
+            background-color: var(--tile-color);
+        }
+
+        .tile-back {
+            background-color: var(--tile-color);
+            transform: rotateY(180deg);
+            font-size: 2em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .tile:hover .tile-front {
+            transform: scale(1.05);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .instructions {
+            text-align: center;
+            color: white;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2.5em;
+            }
+            
+            .container {
+                gap: 15px;
+            }
+            
+            .tile-back {
+                font-size: 1.5em;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1 id="output">Loading...</h1>
-  <script src="script.js"></script>
-  
+    <h1>🎨 Colour Buddies 🎨</h1>
+    <p class="instructions">Tap a color to learn its name!</p>
+    
+    <div class="container" id="tileContainer"></div>
+
+    <script>
+        // Color list with common colors for babies to learn
+        const colors = [
+            { name: 'Red', value: '#FF0000' },
+            { name: 'Blue', value: '#0000FF' },
+            { name: 'Green', value: '#00FF00' },
+            { name: 'Yellow', value: '#FFFF00' },
+            { name: 'Orange', value: '#FFA500' },
+            { name: 'Purple', value: '#800080' },
+            { name: 'Pink', value: '#FFC0CB' },
+            { name: 'Brown', value: '#A52A2A' },
+            { name: 'Black', value: '#000000' },
+            { name: 'White', value: '#FFFFFF' },
+            { name: 'Grey', value: '#808080' },
+            { name: 'Cyan', value: '#00FFFF' },
+            { name: 'Magenta', value: '#FF00FF' },
+            { name: 'Lime', value: '#32CD32' },
+            { name: 'Navy', value: '#000080' },
+            { name: 'Maroon', value: '#800000' },
+            { name: 'Teal', value: '#008080' },
+            { name: 'Coral', value: '#FF7F50' }
+        ];
+
+        // Get random colors for the 9 tiles
+        function getRandomColors() {
+            const shuffled = [...colors].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, 9);
+        }
+
+        // Calculate if text should be white or black based on background brightness
+        function getTextColor(hexColor) {
+            // Convert hex to RGB
+            const r = parseInt(hexColor.substr(1, 2), 16);
+            const g = parseInt(hexColor.substr(3, 2), 16);
+            const b = parseInt(hexColor.substr(5, 2), 16);
+            
+            // Calculate brightness using relative luminance formula
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            
+            // Return black for light colors, white for dark colors
+            return brightness > 128 ? '#000000' : '#FFFFFF';
+        }
+
+        // Create tile element
+        function createTile(colorObj, index) {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.style.setProperty('--tile-color', colorObj.value);
+
+            const tileInner = document.createElement('div');
+            tileInner.className = 'tile-inner';
+
+            const tileFront = document.createElement('div');
+            tileFront.className = 'tile-front';
+
+            const tileBack = document.createElement('div');
+            tileBack.className = 'tile-back';
+            tileBack.textContent = colorObj.name;
+            // Set text color based on background brightness for good contrast
+            tileBack.style.color = getTextColor(colorObj.value);
+
+            tileInner.appendChild(tileFront);
+            tileInner.appendChild(tileBack);
+            tile.appendChild(tileInner);
+
+            // Add click handler to flip tile
+            tile.addEventListener('click', function() {
+                tile.classList.toggle('flipped');
+            });
+
+            return tile;
+        }
+
+        // Initialize the game
+        function initGame() {
+            const container = document.getElementById('tileContainer');
+            container.innerHTML = '';
+            
+            const randomColors = getRandomColors();
+            
+            randomColors.forEach((colorObj) => {
+                const tile = createTile(colorObj);
+                container.appendChild(tile);
+            });
+        }
+
+        // Start the game when page loads
+        initGame();
+    </script>
 </body>
 </html>
